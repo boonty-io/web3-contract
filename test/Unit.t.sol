@@ -13,7 +13,7 @@ import {Utils} from "./utils/Utils.sol";
  */
 contract BoontyTestUnit is Test {
     Boonty public _boonty;
-    MyERC20 public _usdtToken;
+    MyERC20 public _asset;
     ActivityERC20 public _activityERC20;
     ActivityERC1155 public _activityERC1155Address;
 
@@ -39,14 +39,14 @@ contract BoontyTestUnit is Test {
 
         vm.startPrank(owner);
         _boonty = new Boonty(owner);
-        _usdtToken = new MyERC20(100000000000);
-        _usdtToken.transfer(brand, 100000000000);
-        _boonty.setUsdtToken(address(_usdtToken));
-        _boonty.setBoontyFees(10);
+        _asset = new MyERC20(100000000000);
+        _asset.transfer(brand, 100000000000);
+        _boonty.setUsdtToken(address(_asset));
+        _boonty.setFees(10);
         vm.stopPrank();
 
         vm.startPrank(brand);
-        _usdtToken.approve(address(_boonty), 1000);
+        _asset.approve(address(_boonty), 1000);
         address activityERC20Address = _boonty.createActivityERC20(1000, "BrandName", "activity one", 1, 0, 24);
         _activityERC20 = ActivityERC20(activityERC20Address);
         vm.stopPrank();
@@ -62,7 +62,7 @@ contract BoontyTestUnit is Test {
         vm.startPrank(brand);
         vm.expectRevert(bytes("Already initialized"));
         _activityERC20.initialize(
-            address(owner), address(owner), address(_usdtToken), 1000, 10, brand, "BrandName", "activity one", 1, 0, 24
+            address(owner), address(owner), address(_asset), 1000, 10, brand, "BrandName", "activity one", 1, 0, 24
         );
         vm.stopPrank();
     }
@@ -84,8 +84,8 @@ contract BoontyTestUnit is Test {
         uint256 boontyFeesCalculated = 100;
 
         assertEq(_activityERC20.isActivityFinished(), true);
-        assertEq(_usdtToken.balanceOf(address(_activityERC20)), 0);
-        assertEq(_usdtToken.balanceOf(brand), 100000000000 - boontyFeesCalculated);
-        assertEq(_usdtToken.balanceOf(address(owner)), boontyFeesCalculated);
+        assertEq(_asset.balanceOf(address(_activityERC20)), 0);
+        assertEq(_asset.balanceOf(brand), 100000000000 - boontyFeesCalculated);
+        assertEq(_asset.balanceOf(address(owner)), boontyFeesCalculated);
     }
 }

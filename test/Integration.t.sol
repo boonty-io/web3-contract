@@ -9,13 +9,14 @@ import {ActivityERC1155} from "../src/ActivityERC1155.sol";
 import {Utils} from "./utils/Utils.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-
 /**
  * @custom:feature Integration test for Boonty contract
  */
 contract BoontyTestIntegration is Test {
+    using Math for uint256;
+
     Boonty public _boonty;
-    MyERC20 public _usdtToken;
+    MyERC20 public _asset;
 
     Utils internal utils;
     address payable[] internal users;
@@ -39,31 +40,31 @@ contract BoontyTestIntegration is Test {
 
         vm.startPrank(owner);
         _boonty = new Boonty(owner);
-        _usdtToken = new MyERC20(100000000000);
-        _usdtToken.transfer(brand, 100000000000);
-        _boonty.setUsdtToken(address(_usdtToken));
-        _boonty.setBoontyFixedFees(1000);
+        _asset = new MyERC20(100000000000);
+        _asset.transfer(brand, 100000000000);
+        _boonty.setUsdtToken(address(_asset));
+        _boonty.setFixedFees(1000);
         vm.stopPrank();
     }
 
     function test_CreateActivityERC20() public {
         vm.startPrank(brand);
 
-        _usdtToken.approve(address(_boonty), 1000);
+        _asset.approve(address(_boonty), 1000);
 
         address activityERC20Address = _boonty.createActivityERC20(1000, "BrandName", "activity one", 1, 0, 24);
 
         assertNotEq(activityERC20Address, address(0), "ActivityERC20 address should not be zero");
 
         ActivityERC20 activityERC20 = ActivityERC20(activityERC20Address);
-        assertEq(address(activityERC20._owner()), address(brand), "Owner should be the test contract");
-        assertEq(activityERC20._usdtToken(), address(_usdtToken), "USDT token address should match");
+        assertEq(address(activityERC20.getOwner()), address(brand), "Owner should be the test contract");
+        assertEq(activityERC20.getAsset(), address(_asset), "USDT token address should match");
         vm.stopPrank();
     }
 
     function test_CreateActivityERC1155() public {
         vm.startPrank(brand);
-        _usdtToken.approve(address(_boonty), 1000);
+        _asset.approve(address(_boonty), 1000);
 
         // Create ActivityERC1155
         address activityERC1155Address =
@@ -87,7 +88,8 @@ contract BoontyTestIntegration is Test {
         supply = bound(supply, 1, 100000000000);
         activityStart = bound(activityStart, 1, 2000);
         hoursAvailable = bound(hoursAvailable, 1, 2000);
-        _usdtToken.approve(address(_boonty), supply);
+        _asset.approve(address(_boonty), supply);
+        uint256 fees = uint256(_boonty.getFees());
 
         address activityERC20Address =
             _boonty.createActivityERC20(supply, brandName, activityName, 100, activityStart, hoursAvailable);
@@ -95,7 +97,8 @@ contract BoontyTestIntegration is Test {
         ActivityERC20 activityERC20 = ActivityERC20(activityERC20Address);
         assertNotEq(activityERC20Address, address(0), "ActivityERC1155 address should not be zero");
 
-        assertEq(supply, activityERC20.getSupply(), "error in balance");
+        uint256 newSupply = (supply.mulDiv(100 - fees, 100, Math.Rounding.Ceil));
+        assertEq(_asset.balanceOf(address(activityERC20)), newSupply - (newSupply % 100), "error in balance");
         assertEq(brandName, activityERC20.getBrandName(), "error in brand name");
         assertEq(activityName, activityERC20.getActivityName(), "error in activity name");
         assertEq(
@@ -116,7 +119,7 @@ contract BoontyTestIntegration is Test {
         supply = bound(supply, 1, 100000000000);
         activityStart = bound(activityStart, 1, 100000000000);
         vm.startPrank(brand);
-        _usdtToken.approve(address(_boonty), 1000);
+        _asset.approve(address(_boonty), 1000);
 
         // Create ActivityERC1155
         address activityERC1155Address =
@@ -126,12 +129,12 @@ contract BoontyTestIntegration is Test {
         assertNotEq(activityERC1155Address, address(0), "ActivityERC1155 address should not be zero");
 
         assertEq(supply, activityERC1155.balanceOf(activityERC1155Address, 0), "error in balance");
-        assertEq(brandName, activityERC1155._brandName(), "error in brand name");
-        assertEq(activityName, activityERC1155._activityName(), "error in activity name");
+        assertEq(brandName, activityERC1155.getBrandName(), "error in brand name");
+        assertEq(activityName, activityERC1155.getActivityName(), "error in activity name");
         assertEq(
-            block.timestamp + (activityStart * 1 hours), activityERC1155._activityStart(), "error in activity start"
+            block.timestamp + (activityStart * 1 hours), activityERC1155.getActivityStart(), "error in activity start"
         );
-        assertEq(hoursAvailable, activityERC1155._hoursAvailable(), "error in hours available");
+        assertEq(hoursAvailable, activityERC1155.getHoursAvailable(), "error in hours available");
         vm.stopPrank();
     }
 }

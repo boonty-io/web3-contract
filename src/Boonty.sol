@@ -13,16 +13,15 @@ import "./ActivityERC20.sol";
  * @dev A contract for managing Boonty activities, which can be either ERC20 or ERC1155 based.
  */
 contract Boonty is Ownable {
-    address internal _usdtToken;
-    address internal _activityERC20;
-    address internal _boontySetWhitelist;
+    address internal _asset; // USDT/USDC token address
+    address internal _activityERC20; // ERC20-based activity template address
+    address internal _boontySetWhitelist; // BoontySetWhitelist contract address
 
-    uint256 internal _boontyFixedFees;
-    uint256 internal _boontyFees;
-    //enlever le nom boonty = a changer
+    uint256 internal _fixedFees; // Fees for erc1155
+    uint8 internal _fees; // Fees for erc20
 
-    address[] public _activitiesERC20;
-    address[] public _activitiesERC1155;
+    address[] public _activitiesERC20; // List of ERC20-based activities
+    address[] public _activitiesERC1155; // List of ERC1155-based activities
 
     event ActivityCreated(address newActivity);
 
@@ -43,8 +42,8 @@ contract Boonty is Ownable {
      * @dev Returns the USDT token address.
      * @return The USDT token address.
      */
-    function getUsdtToken() external view returns (address) {
-        return _usdtToken;
+    function getAsset() external view returns (address) {
+        return _asset;
     }
 
     /**
@@ -67,16 +66,16 @@ contract Boonty is Ownable {
      * @dev Returns the fixed fees for Boonty.
      * @return The fixed fees amount.
      */
-    function getBoontyFixedFees() external view returns (uint256) {
-        return _boontyFixedFees;
+    function getFixedFees() external view returns (uint256) {
+        return _fixedFees;
     }
 
     /**
      * @dev Returns the variable fees for Boonty.
      * @return The variable fees amount.
      */
-    function getBoontyFees() external view returns (uint256) {
-        return _boontyFees;
+    function getFees() external view returns (uint8) {
+        return _fees;
     }
 
     /**
@@ -101,10 +100,10 @@ contract Boonty is Ownable {
 
     /**
      * @dev Sets the USDT token address.
-     * @param usdtToken Address of the USDT token.
+     * @param asset Address of the USDT token.
      */
-    function setUsdtToken(address usdtToken) external onlyOwner {
-        _usdtToken = usdtToken;
+    function setUsdtToken(address asset) external onlyOwner {
+        _asset = asset;
     }
 
     /**
@@ -117,18 +116,18 @@ contract Boonty is Ownable {
 
     /**
      * @dev Sets the fixed fees for Boonty.
-     * @param boontyFixedFees The fixed fees amount to set.
+     * @param fixedFees The fixed fees amount to set.
      */
-    function setBoontyFixedFees(uint256 boontyFixedFees) external onlyOwner {
-        _boontyFixedFees = boontyFixedFees;
+    function setFixedFees(uint256 fixedFees) external onlyOwner {
+        _fixedFees = fixedFees;
     }
 
     /**
      * @dev Sets the variable fees for Boonty.
-     * @param boontyFees The variable fees amount to set.
+     * @param fees The variable fees amount to set.
      */
-    function setBoontyFees(uint256 boontyFees) external onlyOwner {
-        _boontyFees = boontyFees;
+    function setFees(uint8 fees) external onlyOwner {
+        _fees = fees;
     }
 
     /* -------------------------------------------------------------------------- */
@@ -140,7 +139,7 @@ contract Boonty is Ownable {
      * @param supply Total supply of the ERC20 tokens for the activity.
      * @param brandName Brand name of the activity.
      * @param activityName Name of the activity.
-     * @param numberOfWinners Number of winners for the activity.
+     * @param maxWinners Number of winners for the activity.
      * @param activityStart Start time of the activity. In hours. If 0, the activity starts now.
      * @param hoursAvailable Duration of the activity in hours after the start time.
      * @return Address of the newly created ERC20-based activity.
@@ -149,28 +148,28 @@ contract Boonty is Ownable {
         uint256 supply,
         string memory brandName,
         string memory activityName,
-        uint256 numberOfWinners,
+        uint256 maxWinners,
         uint256 activityStart,
         uint256 hoursAvailable
     ) external returns (address) {
         require(_activityERC20 != address(0), "Template storage doesn't exist");
-        address usdtToken = _usdtToken; // gas savings
-        require(IERC20(usdtToken).allowance(msg.sender, address(this)) >= supply, "Increase your allowance");
+        address asset = _asset; // gas savings
+        require(IERC20(asset).allowance(msg.sender, address(this)) >= supply, "Increase your allowance");
         address clone = Clones.clone(_activityERC20);
+        IERC20(asset).transferFrom(msg.sender, clone, supply);
         ActivityERC20(clone).initialize(
             owner(),
             _boontySetWhitelist,
-            usdtToken,
+            asset,
             supply,
-            _boontyFees,
+            _fees,
             msg.sender,
             brandName,
             activityName,
-            numberOfWinners,
+            maxWinners,
             activityStart,
             hoursAvailable
         );
-        IERC20(usdtToken).transferFrom(msg.sender, clone, supply);
         _activitiesERC20.push(clone);
         emit ActivityCreated(clone);
         return clone;
@@ -196,10 +195,10 @@ contract Boonty is Ownable {
         uint256 hoursAvailable,
         address brandAddress
     ) external returns (address) {
-        address usdtToken = _usdtToken; // gas savings
-        uint256 boontyFixedFees = _boontyFixedFees; // gas savings
-        require(IERC20(usdtToken).allowance(msg.sender, address(this)) >= boontyFixedFees, "Increase your allowance");
-        IERC20(usdtToken).transferFrom(msg.sender, owner(), boontyFixedFees);
+        address asset = _asset; // gas savings
+        uint256 fixedFees = _fixedFees; // gas savings
+        require(IERC20(asset).allowance(msg.sender, address(this)) >= fixedFees, "Increase your allowance");
+        IERC20(asset).transferFrom(msg.sender, owner(), fixedFees);
         ActivityERC1155 newActivityERC1155 = new ActivityERC1155(
             _boontySetWhitelist, supply, brandAddress, brandName, activityName, uri, activityStart, hoursAvailable
         );

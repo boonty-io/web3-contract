@@ -12,13 +12,13 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev A contract representing an ERC1155-based activity.
  */
 contract ActivityERC1155 is ERC1155, Ownable {
-    bytes32 internal _merkleRoot;
-    string internal _brandName;
-    string internal _activityName;
-    address internal _boontySetWhitelist;
-    uint256 internal _hoursAvailable;
-    uint256 internal _activityStart;
-    bool internal _activityFinished;
+    bytes32 internal _merkleRoot; // Merkle root for whitelist verification
+    string internal _brandName; // Brand name of the activity
+    string internal _activityName; // Name of the activity
+    address internal _boontySetWhitelist; // Address can set the whitelist
+    uint256 internal _hoursAvailable; // Duration of the activity in hours
+    uint256 internal _activityStart; // Start time of the activity
+    bool internal _activityFinished; // Activity finished flag
 
     /**
      * @dev Constructor to initialize the ERC1155-based activity.

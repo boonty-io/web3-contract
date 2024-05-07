@@ -13,46 +13,46 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract ActivityERC20 {
     using Math for uint256;
 
-    bytes32 internal _merkleRoot;
-    address internal _boontyAddress;
-    string internal _brandName;
-    string internal _activityName;
-    address internal _boontySetWhitelist;
-    address internal _usdtToken;
-    uint256 internal _supply;
-    uint256 internal _boontyToken;
-    uint256 internal _shares;
-    uint256 internal _hoursAvailable;
-    uint256 internal _activityStart;
-    address internal _owner;
-    bool internal _activityFinished;
+    bytes32 internal _merkleRoot; // Merkle root for whitelist verification
+    address internal _boontyAddress; // Boonty owner address
+    string internal _brandName; // Brand name of the activity
+    string internal _activityName; // Name of the activity
+    address internal _boontySetWhitelist; // Address can set the whitelist
+    address internal _asset; // USDT/USDC token address
+    uint256 internal _supply; // Total supply of ERC20 tokens for the activity
+    uint256 internal _boontyToken; // Boonty fees
+    uint256 internal _shares; // Share of tokens per winner
+    uint256 internal _hoursAvailable; // Duration of the activity in hours
+    uint256 internal _activityStart; // Start time of the activity
+    address internal _owner; // Brand owner address
+    bool internal _activityFinished; // Activity finished flag
 
-    mapping(address => bool) public claimed;
+    mapping(address => bool) public claimed; // Mapping of claimed prizes
 
     /**
      * @dev Initializes the ERC20-based activity.
      * @param boontyAddress Address of the Boonty contract. // a changé
      * @param boontySetWhitelist Address of the BoontySetWhitelist contract.
-     * @param usdtToken Address of the USDT token.
+     * @param asset Address of the USDT token.
      * @param supply Total supply of ERC20 tokens for the activity.
      * @param fees Percentage of fees.
      * @param brandAddress Address of the brand.
      * @param brandName Brand name of the activity.
      * @param activityName Name of the activity.
-     * @param numberOfWinners Number of winners for the activity.
+     * @param maxWinners Number of winners for the activity.
      * @param activityStart Start time of the activity.
      * @param hoursAvailable Duration of the activity in hours.
      */
     function initialize(
         address boontyAddress,
         address boontySetWhitelist,
-        address usdtToken,
+        address asset,
         uint256 supply,
-        uint256 fees,
+        uint8 fees,
         address brandAddress,
         string memory brandName,
         string memory activityName,
-        uint256 numberOfWinners,
+        uint256 maxWinners,
         uint256 activityStart,
         uint256 hoursAvailable
     ) external {
@@ -60,13 +60,14 @@ contract ActivityERC20 {
         _owner = brandAddress;
         _boontyAddress = boontyAddress;
         _boontySetWhitelist = boontySetWhitelist;
-        _usdtToken = usdtToken;
-        uint256 newSupply = supply - fees.mulDiv(supply, 100, Math.Rounding.Ceil); // gas savings
-        _supply = newSupply;
+        _asset = asset;
+        uint256 newSupply = supply - uint256(fees).mulDiv(supply, 100, Math.Rounding.Ceil); // gas savings
+        _supply = newSupply - newSupply % maxWinners;
         _brandName = brandName;
         _activityName = activityName;
-        _shares = newSupply / numberOfWinners;
-        _boontyToken = supply - newSupply + newSupply % numberOfWinners;
+        _shares = newSupply / maxWinners;
+        IERC20(asset).transfer(brandAddress, newSupply % maxWinners);
+        _boontyToken = supply - newSupply;
         _activityStart = block.timestamp + (activityStart * 1 hours);
         _hoursAvailable = hoursAvailable;
     }
@@ -140,8 +141,8 @@ contract ActivityERC20 {
      * @dev Returns the USDT token address.
      * @return The USDT token address.
      */
-    function getUsdtToken() public view returns (address) {
-        return _usdtToken;
+    function getAsset() public view returns (address) {
+        return _asset;
     }
 
     /**
@@ -223,28 +224,25 @@ contract ActivityERC20 {
     function activityFinished() public {
         require(!_activityFinished, "Activity finished");
 
-        if (IERC20(_usdtToken).balanceOf(address(this)) == _boontyToken) {
-            //add verif
-            //add comment
+        if (IERC20(_asset).balanceOf(address(this)) == _boontyToken) {
             require(msg.sender == _owner || msg.sender == _boontyAddress);
             _activityFinished = true;
 
-            IERC20(_usdtToken).transfer(_boontyAddress, _boontyToken);
-            //renvoie du reste
+            IERC20(_asset).transfer(_boontyAddress, _boontyToken);
         } else if (block.timestamp <= _activityStart + (_hoursAvailable * 1 hours)) {
             require(msg.sender == _owner);
             _activityFinished = true;
 
-            IERC20(_usdtToken).transfer(_boontyAddress, _boontyToken);
-            uint256 balance = IERC20(_usdtToken).balanceOf(address(this));
-            IERC20(_usdtToken).transfer(_owner, balance);
+            IERC20(_asset).transfer(_boontyAddress, _boontyToken);
+            uint256 balance = IERC20(_asset).balanceOf(address(this));
+            IERC20(_asset).transfer(_owner, balance);
         } else if (block.timestamp > _activityStart + (_hoursAvailable * 1 hours)) {
             require(msg.sender == _owner || msg.sender == _boontyAddress);
             _activityFinished = true;
 
-            IERC20(_usdtToken).transfer(_boontyAddress, _boontyToken);
-            uint256 balance = IERC20(_usdtToken).balanceOf(address(this));
-            IERC20(_usdtToken).transfer(_owner, balance);
+            IERC20(_asset).transfer(_boontyAddress, _boontyToken);
+            uint256 balance = IERC20(_asset).balanceOf(address(this));
+            IERC20(_asset).transfer(_owner, balance);
         }
     }
 
@@ -269,6 +267,6 @@ contract ActivityERC20 {
         require(!claimed[msg.sender], "Tokens already claimed");
         claimed[msg.sender] = true;
         // add emit(msg.sender, _shares, blocks.timestamp)
-        IERC20(_usdtToken).transfer(msg.sender, _shares);
+        IERC20(_asset).transfer(msg.sender, _shares);
     }
 }

@@ -14,7 +14,7 @@ import {Utils} from "./utils/Utils.sol";
  */
 contract BoontyTestAdmin is Test {
     Boonty public _boonty;
-    MyERC20 public _usdtToken;
+    MyERC20 public _asset;
     ActivityERC20 public _activityERC20;
     ActivityERC1155 public _activityERC1155Address;
 
@@ -40,13 +40,13 @@ contract BoontyTestAdmin is Test {
 
         vm.startPrank(owner);
         _boonty = new Boonty(owner);
-        _usdtToken = new MyERC20(100000000000);
-        _usdtToken.transfer(brand, 100000000000);
-        _boonty.setUsdtToken(address(_usdtToken));
+        _asset = new MyERC20(100000000000);
+        _asset.transfer(brand, 100000000000);
+        _boonty.setUsdtToken(address(_asset));
         vm.stopPrank();
 
         vm.startPrank(brand);
-        _usdtToken.approve(address(_boonty), 1000);
+        _asset.approve(address(_boonty), 1000);
         address activityERC20Address = _boonty.createActivityERC20(1000, "BrandName", "activity one", 1, 0, 24);
         _activityERC20 = ActivityERC20(activityERC20Address);
         vm.stopPrank();
@@ -75,10 +75,10 @@ contract BoontyTestAdmin is Test {
         _boonty.setBoontySetWhitelist(address(0));
 
         vm.expectRevert(customError);
-        _boonty.setBoontyFixedFees(0);
+        _boonty.setFixedFees(0);
 
         vm.expectRevert(customError);
-        _boonty.setBoontyFees(0);
+        _boonty.setFees(0);
 
         vm.expectRevert(bytes("Only boontySetWhitelistAddress"));
         _activityERC20.setMerkleRoot(bytes32(0));
