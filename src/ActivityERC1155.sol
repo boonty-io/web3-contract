@@ -57,8 +57,9 @@ contract ActivityERC1155 is ERC1155, Ownable {
      * @dev Modifier to check if the activity is not finished.
      */
     modifier activityNotFinished() {
-        require(block.timestamp <= _activityStart + (_hoursAvailable * 1 hours), "Activity finished");
         require(!_activityFinished, "Activity finished");
+        require(block.timestamp >= _activityStart, "Activity not started");
+        require(block.timestamp <= _activityStart + (_hoursAvailable * 1 hours), "Activity finished");
         _;
     }
 

@@ -102,7 +102,7 @@ contract Boonty is Ownable {
      * @dev Sets the USDT token address.
      * @param asset Address of the USDT token.
      */
-    function setUsdtToken(address asset) external onlyOwner {
+    function setAsset(address asset) external onlyOwner {
         _asset = asset;
     }
 

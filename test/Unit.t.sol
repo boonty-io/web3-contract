@@ -41,7 +41,7 @@ contract BoontyTestUnit is Test {
         _boonty = new Boonty(owner);
         _asset = new MyERC20(100000000000);
         _asset.transfer(brand, 100000000000);
-        _boonty.setUsdtToken(address(_asset));
+        _boonty.setAsset(address(_asset));
         _boonty.setFees(10);
         vm.stopPrank();
 

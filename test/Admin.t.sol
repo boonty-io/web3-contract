@@ -42,7 +42,7 @@ contract BoontyTestAdmin is Test {
         _boonty = new Boonty(owner);
         _asset = new MyERC20(100000000000);
         _asset.transfer(brand, 100000000000);
-        _boonty.setUsdtToken(address(_asset));
+        _boonty.setAsset(address(_asset));
         vm.stopPrank();
 
         vm.startPrank(brand);
@@ -69,7 +69,7 @@ contract BoontyTestAdmin is Test {
         bytes memory customError = abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(this));
 
         vm.expectRevert(customError);
-        _boonty.setUsdtToken(address(0));
+        _boonty.setAsset(address(0));
 
         vm.expectRevert(customError);
         _boonty.setBoontySetWhitelist(address(0));
