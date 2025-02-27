@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: lilyan bastien Siren 983058728
+pragma solidity 0.8.20;
 
-pragma solidity ^0.8.13;
+import "@openzeppelin-contracts-5.2.0/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin-contracts-5.2.0/token/ERC20/IERC20.sol";
+import "@openzeppelin-contracts-5.2.0/utils/math/Math.sol";
+import {SafeERC20} from "@openzeppelin-contracts-5.2.0/token/ERC20/utils/SafeERC20.sol";
+import {FixedPointMathLib} from "solady-0.1.10/utils/FixedPointMathLib.sol";
 
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+import "./interfaces/IActivityERC20.sol";
 
 /**
  * @title ActivityERC20
  * @dev A contract representing an ERC20-based activity.
  */
-contract ActivityERC20 {
+contract ActivityERC20 is IActivityERC20 {
     using Math for uint256;
+    using SafeERC20 for IERC20;
+
+    uint32 public constant BPS_DIVISOR = 10_000; // Denominator for the reward multiplier, will give us a 0.01% basis point
 
     bytes32 internal _merkleRoot; // Merkle root for whitelist verification
     address internal _boontyAddress; // Boonty owner address
@@ -22,53 +28,41 @@ contract ActivityERC20 {
     uint256 internal _supply; // Total supply of ERC20 tokens for the activity
     uint256 internal _boontyToken; // Boonty fees
     uint256 internal _shares; // Share of tokens per winner
-    uint256 internal _hoursAvailable; // Duration of the activity in hours
     uint256 internal _activityStart; // Start time of the activity
+    uint256 internal _hoursAvailable; // Duration of the activity in hours
     address internal _owner; // Brand owner address
     bool internal _activityFinished; // Activity finished flag
 
     mapping(address => bool) public claimed; // Mapping of claimed prizes
+    uint256 public _totalClaimed; // Total claimed prizes
 
-    /**
-     * @dev Initializes the ERC20-based activity.
-     * @param boontyAddress Address of the Boonty contract. // a changé
-     * @param boontySetWhitelist Address of the BoontySetWhitelist contract.
-     * @param asset Address of the USDT token.
-     * @param supply Total supply of ERC20 tokens for the activity.
-     * @param fees Percentage of fees.
-     * @param brandAddress Address of the brand.
-     * @param brandName Brand name of the activity.
-     * @param activityName Name of the activity.
-     * @param maxWinners Number of winners for the activity.
-     * @param activityStart Start time of the activity.
-     * @param hoursAvailable Duration of the activity in hours.
-     */
+    /// @inheritdoc IActivityERC20
     function initialize(
         address boontyAddress,
         address boontySetWhitelist,
         address asset,
         uint256 supply,
-        uint8 fees,
+        uint16 fees,
         address brandAddress,
         string memory brandName,
         string memory activityName,
         uint256 maxWinners,
-        uint256 activityStart,
-        uint256 hoursAvailable
+        uint16 activityStart,
+        uint16 hoursAvailable
     ) external {
         require(_owner == address(0), "Already initialized");
         _owner = brandAddress;
         _boontyAddress = boontyAddress;
         _boontySetWhitelist = boontySetWhitelist;
         _asset = asset;
-        uint256 newSupply = supply - uint256(fees).mulDiv(supply, 100, Math.Rounding.Ceil); // gas savings
+        uint256 newSupply = supply - FixedPointMathLib.fullMulDiv(supply, fees, uint256(BPS_DIVISOR)); // gas savings
         _supply = newSupply - newSupply % maxWinners;
         _brandName = brandName;
         _activityName = activityName;
         _shares = newSupply / maxWinners;
-        IERC20(asset).transfer(brandAddress, newSupply % maxWinners);
+        IERC20(asset).safeTransfer(brandAddress, newSupply % maxWinners);
         _boontyToken = supply - newSupply;
-        _activityStart = block.timestamp + (activityStart * 1 hours);
+        _activityStart = block.timestamp + (uint256(activityStart) * 1 hours);
         _hoursAvailable = hoursAvailable;
     }
 
@@ -86,119 +80,77 @@ contract ActivityERC20 {
         _;
     }
 
-    /**
-     * @dev Modifier to allow only the owner to access certain functions.
-     */
-    modifier onlyOwner() {
-        require(msg.sender == _owner, "Only owner");
-        _;
-    }
-
     /* -------------------------------------------------------------------------- */
     /*                              Getter functions                              */
     /* -------------------------------------------------------------------------- */
 
-    /**
-     * @dev Returns the Merkle root for whitelist verification.
-     * @return The Merkle root.
-     */
-    function getMerkleRoot() public view returns (bytes32) {
+    /// @inheritdoc IActivityERC20
+    function getMerkleRoot() external view returns (bytes32) {
         return _merkleRoot;
     }
 
-    /**
-     * @dev Returns the Boonty contract address.
-     * @return The Boonty contract address.
-     */
-    function getBoontyAddress() public view returns (address) {
+    /// @inheritdoc IActivityERC20
+    function getBoontyAddress() external view returns (address) {
         return _boontyAddress;
     }
 
-    /**
-     * @dev Returns the brand name.
-     * @return The brand name.
-     */
-    function getBrandName() public view returns (string memory) {
+    /// @inheritdoc IActivityERC20
+    function getBrandName() external view returns (string memory) {
         return _brandName;
     }
 
-    /**
-     * @dev Returns the activity name.
-     * @return The activity name.
-     */
-    function getActivityName() public view returns (string memory) {
+    /// @inheritdoc IActivityERC20
+    function getActivityName() external view returns (string memory) {
         return _activityName;
     }
 
-    /**
-     * @dev Returns the BoontySetWhitelist contract address.
-     * @return The BoontySetWhitelist contract address.
-     */
-    function getBoontySetWhitelist() public view returns (address) {
+    /// @inheritdoc IActivityERC20
+    function getBoontySetWhitelist() external view returns (address) {
         return _boontySetWhitelist;
     }
 
-    /**
-     * @dev Returns the USDT token address.
-     * @return The USDT token address.
-     */
-    function getAsset() public view returns (address) {
+    /// @inheritdoc IActivityERC20
+    function getAsset() external view returns (address) {
         return _asset;
     }
 
-    /**
-     * @dev Returns the total supply of ERC20 tokens for the activity.
-     * @return The total supply.
-     */
-    function getSupply() public view returns (uint256) {
+    /// @inheritdoc IActivityERC20
+    function getSupply() external view returns (uint256) {
         return _supply;
     }
 
-    /**
-     * @dev Returns the Boonty token amount.
-     * @return The Boonty token amount.
-     */
-    function getBoontyToken() public view returns (uint256) {
+    /// @inheritdoc IActivityERC20
+    function getBoontyToken() external view returns (uint256) {
         return _boontyToken;
     }
 
-    /**
-     * @dev Returns the share of tokens per winner.
-     * @return The share of tokens.
-     */
-    function getShares() public view returns (uint256) {
+    /// @inheritdoc IActivityERC20
+    function getShares() external view returns (uint256) {
         return _shares;
     }
 
-    /**
-     * @dev Returns the duration of the activity in hours.
-     * @return The duration in hours.
-     */
-    function getHoursAvailable() public view returns (uint256) {
+    /// @inheritdoc IActivityERC20
+    function getHoursAvailable() external view returns (uint256) {
         return _hoursAvailable;
     }
 
-    /**
-     * @dev Returns the start time of the activity.
-     * @return The start time.
-     */
-    function getActivityStart() public view returns (uint256) {
+    /// @inheritdoc IActivityERC20
+    function getWhenActivityFinished() external view returns (uint256) {
+        return _activityStart + (_hoursAvailable * 1 hours);
+    }
+
+    /// @inheritdoc IActivityERC20
+    function getActivityStart() external view returns (uint256) {
         return _activityStart;
     }
 
-    /**
-     * @dev Returns the owner address.
-     * @return The owner address.
-     */
-    function getOwner() public view returns (address) {
+    /// @inheritdoc IActivityERC20
+    function getOwner() external view returns (address) {
         return _owner;
     }
 
-    /**
-     * @dev Returns whether the activity is finished or not.
-     * @return A boolean indicating whether the activity is finished.
-     */
-    function isActivityFinished() public view returns (bool) {
+    /// @inheritdoc IActivityERC20
+    function isActivityFinished() external view returns (bool) {
         return _activityFinished;
     }
 
@@ -206,11 +158,8 @@ contract ActivityERC20 {
     /*                            Privileged functions                            */
     /* -------------------------------------------------------------------------- */
 
-    /**
-     * @dev Sets the Merkle root for whitelist verification.
-     * @param merkleRoot The Merkle root to set.
-     */
-    function setMerkleRoot(bytes32 merkleRoot) public {
+    /// @inheritdoc IActivityERC20
+    function setMerkleRoot(bytes32 merkleRoot) external {
         require(msg.sender == _boontySetWhitelist, "Only boontySetWhitelistAddress");
         _merkleRoot = merkleRoot;
     }
@@ -219,55 +168,50 @@ contract ActivityERC20 {
     /*                              Public functions                              */
     /* -------------------------------------------------------------------------- */
 
-    /**
-     * @dev Marks the activity as finished and handles token transfers.
-     */
+    /// @inheritdoc IActivityERC20
     function activityFinished() public {
         require(!_activityFinished, "Activity finished");
 
-        if (IERC20(_asset).balanceOf(address(this)) == _boontyToken) {
+        if (_totalClaimed * _shares == _supply) {
             require(msg.sender == _owner || msg.sender == _boontyAddress);
             _activityFinished = true;
 
-            IERC20(_asset).transfer(_boontyAddress, _boontyToken);
+            IERC20(_asset).safeTransfer(_boontyAddress, _boontyToken);
         } else if (block.timestamp <= _activityStart + (_hoursAvailable * 1 hours)) {
             require(msg.sender == _owner);
             _activityFinished = true;
 
-            IERC20(_asset).transfer(_boontyAddress, _boontyToken);
+            IERC20(_asset).safeTransfer(_boontyAddress, _boontyToken);
             uint256 balance = IERC20(_asset).balanceOf(address(this));
-            IERC20(_asset).transfer(_owner, balance);
+            IERC20(_asset).safeTransfer(_owner, balance);
         } else if (block.timestamp > _activityStart + (_hoursAvailable * 1 hours)) {
             require(msg.sender == _owner || msg.sender == _boontyAddress);
             _activityFinished = true;
 
-            IERC20(_asset).transfer(_boontyAddress, _boontyToken);
+            IERC20(_asset).safeTransfer(_boontyAddress, _boontyToken);
             uint256 balance = IERC20(_asset).balanceOf(address(this));
-            IERC20(_asset).transfer(_owner, balance);
+            IERC20(_asset).safeTransfer(_owner, balance);
         }
     }
 
-    /**
-     * @dev Checks if an address is whitelisted.
-     * @param proof Merkle proof to verify.
-     * @param maxAllowanceToMint Maximum allowance to mint.
-     * @return A boolean indicating whether the address is whitelisted.
-     */
-    function checkInWhitelist(bytes32[] calldata proof, uint64 maxAllowanceToMint) public view returns (bool) {
-        bytes32 leaf = keccak256(abi.encode(msg.sender, maxAllowanceToMint));
+    /// @inheritdoc IActivityERC20
+    function checkInWhitelist(address user, bytes32[] calldata proof) public view returns (bool) {
+        bytes32 leaf = keccak256(abi.encodePacked(user));
         return MerkleProof.verify(proof, _merkleRoot, leaf);
     }
 
-    /**
-     * @dev Allows a whitelisted address to withdraw a prize.
-     * @param proof Merkle proof to verify the whitelist.
-     * @param maxAllowanceToMint Maximum allowance to mint.
-     */
-    function withdrawPrize(bytes32[] calldata proof, uint64 maxAllowanceToMint) public activityNotFinished {
-        require(checkInWhitelist(proof, maxAllowanceToMint), "You cannot withdraw the prize");
-        require(!claimed[msg.sender], "Tokens already claimed");
-        claimed[msg.sender] = true;
-        // add emit(msg.sender, _shares, blocks.timestamp)
-        IERC20(_asset).transfer(msg.sender, _shares);
+    /* -------------------------------------------------------------------------- */
+    /*                             External functions                             */
+    /* -------------------------------------------------------------------------- */
+
+    /// @inheritdoc IActivityERC20
+    function withdrawPrize(address user, bytes32[] calldata proof) external activityNotFinished {
+        require(checkInWhitelist(user, proof), "You cannot withdraw the prize");
+        require(!claimed[user], "Tokens already claimed");
+        claimed[user] = true;
+        _totalClaimed += 1;
+        uint256 shares = _shares;
+        IERC20(_asset).safeTransfer(user, shares);
+        emit ClaimedBy(user, shares, block.timestamp);
     }
 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.20;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Test} from "forge-std/Test.sol";
+import {Ownable} from "@openzeppelin-contracts-5.2.0/access/Ownable.sol";
+import {Test} from "forge-std-1.9.6/Test.sol";
 import {Boonty} from "../src/Boonty.sol";
 import {MyERC20} from "../src/MyERC20.sol";
 import {ActivityERC20} from "../src/ActivityERC20.sol";
@@ -39,7 +39,7 @@ contract BoontyTestAdmin is Test {
         emit log_address(brand);
 
         vm.startPrank(owner);
-        _boonty = new Boonty(owner);
+        _boonty = new Boonty(owner, owner);
         _asset = new MyERC20(100000000000);
         _asset.transfer(brand, 100000000000);
         _boonty.setAsset(address(_asset));
