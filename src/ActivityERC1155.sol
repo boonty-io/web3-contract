@@ -28,7 +28,7 @@ contract ActivityERC1155 is IActivityERC1155, ERC1155, Ownable {
      * @param brandName Brand name of the activity.
      * @param activityName Name of the activity.
      * @param initialUri uri for the ERC1155 tokens.
-     * @param activityStart Start time of the activity.
+     * @param activityStart Delay in hours from the current block timestamp after which the activity starts.
      * @param hoursAvailable Duration of the activity in hours.
      */
     constructor(

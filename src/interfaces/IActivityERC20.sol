@@ -21,7 +21,7 @@ interface IActivityERC20 {
      * @param brandName Brand name of the activity.
      * @param activityName Name of the activity.
      * @param maxWinners Number of winners for the activity.
-     * @param activityStart Start time of the activity.
+     * @param activityStart Delay in hours from the current block timestamp after which the activity starts.
      * @param hoursAvailable Duration of the activity in hours.
      */
     function initialize(
