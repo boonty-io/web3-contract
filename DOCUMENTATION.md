@@ -24,7 +24,15 @@ Boonty Factory
     - createActivityERC1155:
         - can be called by anyone for a brand
 
-## ERC20
+## Informations
+
+### Both activities
+
+Boonty can set winners at any time. Winners only can receive their rewards if the activity is not finished.
+Boonty can set any ERC20 token for fees with any amount of fixed fees.
+Boonty can set lower than 20% for fees.
+
+### ERC20
 
 supply + fee are sent to the contract when it's created
 fee = %
@@ -34,12 +42,21 @@ if you run "activityFinished()":
     - if not all reward was distributed + after activityEnd(only owner or boonty), fee are sent to boonty and the remaining rewards are sent to the contract owner(brand)
     - if not all reward was distributed + before activityEnd(only owner), fees are sent to boonty and the remaining rewards are sent to the contract owner(brand)
 
-## ERC721
+### ERC721
 
 fee are send to boonty when the contract is created
-fee = x USDT
+fee = x USDC
+
+Anyone can create an activity for a brand. The caller will be pay the fee.
 
 if you(owner) run "activityFinished()", you will stop the possibility to claim rewards.
+Boonty can not set the activity as finished.
 
+
+## FAQ
+
+Are fees charged on rewards not currently distributed? Yes. To be agreed with the brand on a case-by-case basis.
+Fees are calculated at the start of the activity, regardless of the duration.
 On prend des frais sur les récompenses non distribuées actuellement? Oui. A voir apres avec la brand pour s'arranger au cas par cas.
 Donc les frais tombent et sont calculés au début de l'activité peu importe la durée.
+

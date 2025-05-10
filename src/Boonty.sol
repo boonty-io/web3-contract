@@ -107,8 +107,8 @@ contract Boonty is IBoonty, Ownable {
 
     /// @inheritdoc IBoonty
     function setFees(uint16 newfees) external onlyOwner {
-        // newPositionFee greater than max 10000: 100%
-        require(newfees < 10000, "Fees too high");
+        // newPositionFee greater than max 2000: 20%
+        require(newfees < 2000, "Fees too high");
         _fees = newfees;
     }
 

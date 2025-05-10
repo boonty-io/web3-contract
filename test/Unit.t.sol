@@ -153,11 +153,11 @@ contract BoontyTestUnit is Test {
 
     function test_setFees() public {
         vm.startPrank(owner);
-        _boonty.setFees(9999);
-        assertEq(_boonty.getFees(), 9999);
+        _boonty.setFees(1999);
+        assertEq(_boonty.getFees(), 1999);
         vm.expectRevert(bytes("Fees too high"));
-        _boonty.setFees(10001);
-        assertEq(_boonty.getFees(), 9999);
+        _boonty.setFees(2001);
+        assertEq(_boonty.getFees(), 1999);
         vm.stopPrank();
     }
 
