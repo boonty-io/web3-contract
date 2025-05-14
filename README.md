@@ -1,9 +1,22 @@
 ## Foundry
 
-### Deploy
+### Deploy protocol
 
+For a mainnet deployment, you can use the `Deploy.s.sol` script with:
+
+```bash
 source .env
-forge script script/Deploy.s.sol:Deploy --rpc-url $RPC_URL --broadcast --verify -vvvv
+forge script script/Deploy.s.sol:Deploy -f RPC_URL --broadcast -i 1 --verify -vvvv
+```
+
+You can use `-t` or `-l` options instead of `-i 1` for trezor or ledger hardware wallet.
+
+### Testnet deployment
+
+I use https://ethereum-sepolia-rpc.publicnode.com as RPC_URL for sepolia testnet. You can use any other RPC URL as well.
+
+erc20: address 0xf4175c50f958b65627E8D31DCa0C63813e7e6dCA
+boonty: address 0x70ae97866e716fFe21262fd4768DC492b37cd77C
 
 ### init
 
@@ -75,3 +88,15 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+## Scripts
+
+### Deploy protocol
+
+For a mainnet deployment, you can use the `Spro.s.sol` script with:
+
+```bash
+forge script -f RPC_URL script/Spro.s.sol --broadcast -i 1
+```
+
+You can use `-t` or `-l` options instead of `-i 1` for trezor or ledger hardware wallet.
