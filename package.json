@@ -1,0 +1,37 @@
+{
+  "name": "web3-contract",
+  "description": "Smart contracts for web3",
+  "version": "1.0.0",
+  "author": {
+    "name": "Boonty",
+    "url": "https://boonty.io"
+  },
+  "license": "BUSL-1.1",
+  "scripts": {
+    "exportAbi": "forge build --ast && tsx ./script/utils/exportAbi.ts -g '{*.sol,!(libraries|interfaces)/**/*.sol}' && tsup ./dist/abi/index.ts --format cjs --format esm --dts --sourcemap",
+    "format": "forge fmt",
+    "format:js": "npx @biomejs/biome format . --write",
+    "installDeps": "npm i && forge soldeer install",
+    "quicktest": "forge test -vvv --no-match-test \"(FFI|Fork|Fuzz|invariant)\" --no-match-contract Fork --offline",
+    "quicktest:gas": "npm run quicktest -- --gas-report",
+    "test": "forge test"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "src/**/*",
+    "foundry.toml",
+    "soldeer.lock",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.2",
+    "@types/node": "^20.0.0",
+    "commander": "^12.1.0",
+    "glob": "^11.0.0",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "viem": "^2.21.14"
+  }
+}
